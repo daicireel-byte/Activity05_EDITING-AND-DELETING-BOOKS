@@ -1,89 +1,58 @@
 <?php
 require_once "library.php";
+$bookObj = new Library();
 
-// Start session for CSRF protection
-session_start();
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-$library = new Library();
-
-$form_data = [];
-$validation_errors = [];
-$success_message = "";
+$book = [];
+$errors = [];
+$submit_success = "";
 
 if($_SERVER["REQUEST_METHOD"] == "POST") {
-    // CSRF validation
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        die("Security validation failed");
+    $book["title"] = trim(htmlspecialchars($_POST["title"]));
+    $book["author"] = trim(htmlspecialchars($_POST["author"]));
+    $book["genre"] = trim(htmlspecialchars($_POST["genre"]));
+    $book["publication_year"] = trim(htmlspecialchars($_POST["publication_year"]));
+    $book["publisher"] = trim(htmlspecialchars($_POST["publisher"]));
+    $book["copies"] = trim(htmlspecialchars($_POST["copies"]));
+
+    if(empty($book["title"])) {
+        $errors["title"] = "Title is required";
+    } elseif($bookObj->isTitleExists($book["title"])) {
+        $errors["title"] = "This title already exists";
     }
 
-    $form_data["title"] = trim(htmlspecialchars($_POST["title"]));
-    $form_data["author"] = trim(htmlspecialchars($_POST["author"]));
-    $form_data["genre"] = trim(htmlspecialchars($_POST["genre"]));
-    $form_data["publication_year"] = trim(htmlspecialchars($_POST["publication_year"]));
-    $form_data["publisher"] = trim(htmlspecialchars($_POST["publisher"]));
-    $form_data["copies"] = trim(htmlspecialchars($_POST["copies"]));
-    $form_data["status"] = trim(htmlspecialchars($_POST["status"]));
-
-    // Validate title
-    if(empty($form_data["title"])) {
-        $validation_errors["title"] = "Book title is required";
-    } elseif($library->checkTitleExists($form_data["title"])) {
-        $validation_errors["title"] = "This book title is already in the system";
+    if(empty($book["author"])) {
+        $errors["author"] = "Author is required";
     }
 
-    // Validate author
-    if(empty($form_data["author"])) {
-        $validation_errors["author"] = "Author name is required";
+    if(empty($book["genre"])) {
+        $errors["genre"] = "Genre is required";
     }
 
-    // Validate genre with allowed values
-    $allowed_genres = ['History', 'Science', 'Fiction'];
-    if(empty($form_data["genre"])) {
-        $validation_errors["genre"] = "Please select a genre";
-    } elseif (!in_array($form_data["genre"], $allowed_genres)) {
-        $validation_errors["genre"] = "Please select a valid genre";
+    if(empty($book["publication_year"])) {
+        $errors["publication_year"] = "Publication year is required";
+    } elseif(!is_numeric($book["publication_year"])) {
+        $errors["publication_year"] = "Publication year must be a number";
+    } elseif($book["publication_year"] > date("Y")) {
+        $errors["publication_year"] = "Publication year must not be in the future";
     }
 
-    // Validate publication year
-    if(empty($form_data["publication_year"])) {
-        $validation_errors["publication_year"] = "Publication year is required";
-    } elseif(!is_numeric($form_data["publication_year"])) {
-        $validation_errors["publication_year"] = "Year must be a valid number";
-    } elseif($form_data["publication_year"] > date("Y")) {
-        $validation_errors["publication_year"] = "Publication year cannot be in the future";
+    if(empty($book["copies"])) {
+        $errors["copies"] = "Copies is required";
+    } elseif(!is_numeric($book["copies"])) {
+        $errors["copies"] = "Copies must be a number";
     }
 
-    // Validate copies
-    if(empty($form_data["copies"])) {
-        $validation_errors["copies"] = "Number of copies is required";
-    } elseif(!is_numeric($form_data["copies"])) {
-        $validation_errors["copies"] = "Copies must be a valid number";
-    }
+    if(empty(array_filter($errors))) {
+        $bookObj->title = $book["title"];
+        $bookObj->author = $book["author"];
+        $bookObj->genre = $book["genre"];
+        $bookObj->publication_year = $book["publication_year"];
+        $bookObj->publisher = $book["publisher"];
+        $bookObj->copies = $book["copies"];
 
-    // Validate status
-    $allowed_statuses = ['Available', 'Checked Out', 'Maintenance'];
-    if(empty($form_data["status"])) {
-        $validation_errors["status"] = "Please select a status";
-    } elseif (!in_array($form_data["status"], $allowed_statuses)) {
-        $validation_errors["status"] = "Please select a valid status";
-    }
-
-    // If no errors, proceed with adding book
-    if(empty(array_filter($validation_errors))) {
-        $library->title = $form_data["title"];
-        $library->author = $form_data["author"];
-        $library->genre = $form_data["genre"];
-        $library->publication_year = $form_data["publication_year"];
-        $library->publisher = $form_data["publisher"];
-        $library->copies = $form_data["copies"];
-        $library->status = $form_data["status"];
-
-        if($library->insertBook()) {
-            $success_message = "Book successfully added to library";
-            $form_data = []; // Reset form
+        if($bookObj->addBook()) {
+            $submit_success = "Book was added successfully";
+            $book = []; // Clear form
         }
     }
 }
@@ -94,59 +63,47 @@ if($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add New Book</title>
+    <title>Add Book</title>
     <link rel="stylesheet" href="addbook.css">
 </head>
 <body>
-    <div class="form-container">
-        <h1>Add New Book</h1>
-        <form method="post" action="">
-            <!-- CSRF Token -->
-            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-            
-            <label for="title" class="form-label">Book Title <span class="mandatory">*</span></label>
-            <input type="text" name="title" id="title" class="form-input" value="<?= $form_data["title"] ?? "" ?>">
-            <span class="validation-error"><?= $validation_errors["title"] ?? "" ?></span>
+    <div class="container">
+        <h1>Book Form</h1>
+        <form action="" method="post">
+            <label for="title">Title <span class="required">*</span></label>
+            <input type="text" name="title" id="title" value="<?= $book["title"] ?? "" ?>">
+            <p class="error"><?= $errors["title"] ?? "" ?></p>
 
-            <label for="author" class="form-label">Author <span class="mandatory">*</span></label>
-            <input type="text" name="author" id="author" class="form-input" value="<?= $form_data["author"] ?? "" ?>">
-            <span class="validation-error"><?= $validation_errors["author"] ?? "" ?></span>
+            <label for="author">Author <span class="required">*</span></label>
+            <input type="text" name="author" id="author" value="<?= $book["author"] ?? "" ?>">
+            <p class="error"><?= $errors["author"] ?? "" ?></p>
 
-            <label for="genre" class="form-label">Genre <span class="mandatory">*</span></label>
-            <select name="genre" id="genre" class="form-select">
-                <option value="">-- Choose Genre --</option>
-                <option value="History" <?= (isset($form_data["genre"]) && $form_data["genre"] == "History") ? "selected" : "" ?>>History</option>
-                <option value="Science" <?= (isset($form_data["genre"]) && $form_data["genre"] == "Science") ? "selected" : "" ?>>Science</option>
-                <option value="Fiction" <?= (isset($form_data["genre"]) && $form_data["genre"] == "Fiction") ? "selected" : "" ?>>Fiction</option>
+            <label for="genre">Genre <span class="required">*</span></label>
+            <select name="genre" id="genre">
+                <option value="">--Select Genre--</option>
+                <option value="History" <?= (isset($book["genre"]) && $book["genre"] == "History") ? "selected" : "" ?>>History</option>
+                <option value="Science" <?= (isset($book["genre"]) && $book["genre"] == "Science") ? "selected" : "" ?>>Science</option>
+                <option value="Fiction" <?= (isset($book["genre"]) && $book["genre"] == "Fiction") ? "selected" : "" ?>>Fiction</option>
             </select>
-            <span class="validation-error"><?= $validation_errors["genre"] ?? "" ?></span>
+            <p class="error"><?= $errors["genre"] ?? "" ?></p>
 
-            <label for="publication_year" class="form-label">Publication Year <span class="mandatory">*</span></label>
-            <input type="text" name="publication_year" id="publication_year" class="form-input" value="<?= $form_data["publication_year"] ?? "" ?>">
-            <span class="validation-error"><?= $validation_errors["publication_year"] ?? "" ?></span>
+            <label for="publication_year">Publication Year <span class="required">*</span></label>
+            <input type="text" name="publication_year" id="publication_year" value="<?= $book["publication_year"] ?? "" ?>">
+            <p class="error"><?= $errors["publication_year"] ?? "" ?></p>
 
-            <label for="publisher" class="form-label">Publisher</label>
-            <input type="text" name="publisher" id="publisher" class="form-input" value="<?= $form_data["publisher"] ?? "" ?>">
+            <label for="publisher">Publisher</label>
+            <input type="text" name="publisher" id="publisher" value="<?= $book["publisher"] ?? "" ?>">
 
-            <label for="copies" class="form-label">Available Copies <span class="mandatory">*</span></label>
-            <input type="text" name="copies" id="copies" class="form-input" value="<?= $form_data["copies"] ?? "" ?>">
-            <span class="validation-error"><?= $validation_errors["copies"] ?? "" ?></span>
+            <label for="copies">Copies <span class="required">*</span></label>
+            <input type="text" name="copies" id="copies" value="<?= $book["copies"] ?? "" ?>">
+            <p class="error"><?= $errors["copies"] ?? "" ?></p>
 
-            <label for="status" class="form-label">Book Status <span class="mandatory">*</span></label>
-            <select name="status" id="status" class="form-select">
-                <option value="">-- Select Status --</option>
-                <option value="Available" <?= (isset($form_data["status"]) && $form_data["status"] == "Available") ? "selected" : "" ?>>Available</option>
-                <option value="Checked Out" <?= (isset($form_data["status"]) && $form_data["status"] == "Checked Out") ? "selected" : "" ?>>Checked Out</option>
-                <option value="Maintenance" <?= (isset($form_data["status"]) && $form_data["status"] == "Maintenance") ? "selected" : "" ?>>Maintenance</option>
-            </select>
-            <span class="validation-error"><?= $validation_errors["status"] ?? "" ?></span>
-
-            <input type="submit" value="Add Book to Library" class="submit-button">
-            <p class="success-message"><?= $success_message ?></p>
+            <input type="submit" value="Add Book" class="submit-btn">
+            <p class="success"><?= $submit_success ?></p>
         </form>
 
-        <div class="action-button">
-            <a href="viewBook.php">View All Books</a>
+        <div class="nav-btn">
+            <a href="viewBook.php">View Book List</a>
         </div>
     </div>
 </body>
