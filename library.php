@@ -8,104 +8,82 @@ class Library extends Database {
     public $publication_year = "";
     public $publisher = "";
     public $copies = "";
-    public $status = "";
 
-    public function insertBook() {
-        $sql = "INSERT INTO book (title, author, genre, publication_year, publisher, copies, status) 
-                VALUES (:title, :author, :genre, :publication_year, :publisher, :copies, :status)";
-        
-        $stmt = $this->connect()->prepare($sql);
-        $stmt->bindParam(":title", $this->title);
-        $stmt->bindParam(":author", $this->author);
-        $stmt->bindParam(":genre", $this->genre);
-        $stmt->bindParam(":publication_year", $this->publication_year);
-        $stmt->bindParam(":publisher", $this->publisher);
-        $stmt->bindParam(":copies", $this->copies);
-        $stmt->bindParam(":status", $this->status);
-
-        return $stmt->execute();
+    public function addBook() {
+        $sql = "INSERT INTO book (title, author, genre, publication_year, publisher, copies) VALUES (:title, :author, :genre, :publication_year, :publisher, :copies)";
+        $query = $this->connect()->prepare($sql);
+        $query->bindParam(":title", $this->title);
+        $query->bindParam(":author", $this->author);
+        $query->bindParam(":genre", $this->genre);
+        $query->bindParam(":publication_year", $this->publication_year);
+        $query->bindParam(":publisher", $this->publisher);
+        $query->bindParam(":copies", $this->copies);
+        return $query->execute();
     }
 
-    public function getBooks($search_term = "", $genre_filter = "") {
-        $sql = "SELECT * FROM book 
-                WHERE title LIKE CONCAT('%', :search, '%') 
-                AND genre LIKE CONCAT('%', :genre, '%') 
-                ORDER BY title ASC";
-                
-        $stmt = $this->connect()->prepare($sql);
-        $stmt->bindParam(":search", $search_term);
-        $stmt->bindParam(":genre", $genre_filter);
-        
-        if ($stmt->execute()) {
-            return $stmt->fetchAll();
+    public function viewBooks($search="", $genre="") {
+        $sql = "SELECT * FROM book WHERE title LIKE CONCAT('%', :search, '%') AND genre LIKE CONCAT('%', :genre, '%') ORDER BY title ASC";
+        $query = $this->connect()->prepare($sql);
+        $query->bindParam(":search", $search);
+        $query->bindParam(":genre", $genre);
+        if ($query->execute()) {
+            return $query->fetchAll();
         } else {
             return null;
         }
     }
 
-    public function checkTitleExists($title, $exclude_id = null) {
-        if ($exclude_id) {
-            $sql = "SELECT COUNT(*) as count FROM book WHERE title = :title AND id != :id";
+    public function isTitleExists($title, $bid = null) {
+        if ($bid) {
+            $sql = "SELECT COUNT(*) as total FROM book WHERE title = :title AND id != :id";
         } else {
-            $sql = "SELECT COUNT(*) as count FROM book WHERE title = :title";
+            $sql = "SELECT COUNT(*) as total FROM book WHERE title = :title";
         }
-        
-        $stmt = $this->connect()->prepare($sql);
-        $stmt->bindParam(":title", $title);
-        
-        if ($exclude_id) {
-            $stmt->bindParam(":id", $exclude_id);
+        $query = $this->connect()->prepare($sql);
+        $query->bindParam(":title", $title);
+        if ($bid) {
+            $query->bindParam(":id", $bid);
         }
-        
-        $result = null;
-        
-        if ($stmt->execute()) {
-            $result = $stmt->fetch();
+        $record = null;
+        if ($query->execute()) {
+            $record = $query->fetch();
         }
-        
-        if($result["count"] > 0) {
+        if($record["total"] > 0) {
             return true;
         } else {
             return false;
         }
     }
 
-    public function getBook($book_id) {
+    public function fetchBook($bid) {
         $sql = "SELECT * FROM book WHERE id = :id";
-        $stmt = $this->connect()->prepare($sql);
-        $stmt->bindParam(":id", $book_id);
-        
-        if ($stmt->execute()) {
-           return $stmt->fetch();
+        $query = $this->connect()->prepare($sql);
+        $query->bindParam(":id", $bid);
+        $record = null;
+        if ($query->execute()) {
+            return $query->fetch();
         } else {
             return null;
         }
     }
 
-    public function updateBook($book_id) {
-        $sql = "UPDATE book SET title = :title, author = :author, genre = :genre, 
-                publication_year = :publication_year, publisher = :publisher, copies = :copies, status = :status
-                WHERE id = :id";
-        
-        $stmt = $this->connect()->prepare($sql);
-        $stmt->bindParam(":title", $this->title);
-        $stmt->bindParam(":author", $this->author);
-        $stmt->bindParam(":genre", $this->genre);
-        $stmt->bindParam(":publication_year", $this->publication_year);
-        $stmt->bindParam(":publisher", $this->publisher);
-        $stmt->bindParam(":copies", $this->copies);
-        $stmt->bindParam(":status", $this->status);
-        $stmt->bindParam(":id", $book_id);
-
-        return $stmt->execute();
+    public function editBook($bid) {
+        $sql = "UPDATE book SET title=:title, author=:author, genre=:genre, publication_year=:publication_year, publisher=:publisher, copies=:copies WHERE id = :id";
+        $query = $this->connect()->prepare($sql);
+        $query->bindParam(":title", $this->title);
+        $query->bindParam(":author", $this->author);
+        $query->bindParam(":genre", $this->genre);
+        $query->bindParam(":publication_year", $this->publication_year);
+        $query->bindParam(":publisher", $this->publisher);
+        $query->bindParam(":copies", $this->copies);
+        $query->bindParam(":id", $bid);
+        return $query->execute();
     }
 
-    public function removeBook($book_id) {
+    public function deleteBook($bid) {
         $sql = "DELETE FROM book WHERE id = :id";
-        
-        $stmt = $this->connect()->prepare($sql);
-        $stmt->bindParam(":id", $book_id);
-
-        return $stmt->execute();
+        $query = $this->connect()->prepare($sql);
+        $query->bindParam(":id", $bid);
+        return $query->execute();
     }
 }
