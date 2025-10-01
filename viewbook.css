@@ -1,0 +1,246 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f8f9fa;
+    padding: 20px;
+}
+
+.page-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    padding: 35px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.page-title {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #2c3e50;
+    font-size: 32px;
+}
+
+
+.search-form {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 25px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.search-label {
+    font-weight: 600;
+    color: #495057;
+    margin-right: 8px;
+}
+
+.search-input {
+    flex: 1;
+    padding: 11px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 15px;
+    transition: border-color 0.3s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.genre-filter {
+    padding: 11px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-size: 15px;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.genre-filter:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.search-submit {
+    padding: 11px 24px;
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: background-color 0.3s;
+}
+
+.search-submit:hover {
+    background: #2980b9;
+}
+
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.data-table th, .data-table td {
+    padding: 14px;
+    text-align: left;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.data-table th {
+    background: #3498db;
+    color: white;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.data-table tr:hover {
+    background: #f8f9fa;
+}
+.status-available {
+    color: #27ae60;
+    font-weight: 600;
+}
+
+.status-checked-out {
+    color: #e67e22;
+    font-weight: 600;
+}
+
+.status-maintenance {
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+
+.data-table td a {
+    display: inline-block;
+    padding: 7px 14px;
+    margin-right: 6px;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.edit-action {
+    background: #27ae60;
+    color: white;
+    border: 1px solid #27ae60;
+}
+
+.edit-action:hover {
+    background: #219653;
+    border-color: #219653;
+}
+
+.delete-action {
+    background: #e74c3c;
+    color: white;
+    border: 1px solid #e74c3c;
+}
+
+.delete-action:hover {
+    background: #c0392b;
+    border-color: #c0392b;
+}
+
+
+.action-container {
+    text-align: center;
+}
+
+.primary-button {
+    display: inline-block;
+    color: white;
+    background: #3498db;
+    text-decoration: none;
+    border: 2px solid #3498db;
+    padding: 14px 28px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.primary-button:hover {
+    background: #2980b9;
+    border-color: #2980b9;
+}
+
+.empty-state {
+    text-align: center;
+    color: #6c757d;
+    padding: 50px 0;
+    font-size: 18px;
+}
+
+
+.message-success {
+    background: #d4edda;
+    color: #155724;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border: 1px solid #c3e6cb;
+}
+
+.message-error {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    border: 1px solid #f5c6cb;
+}
+
+
+@media (max-width: 768px) {
+    .search-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .search-label {
+        margin-bottom: 8px;
+    }
+    
+    .data-table {
+        font-size: 13px;
+    }
+    
+    .data-table td a {
+        padding: 5px 10px;
+        font-size: 12px;
+        margin-bottom: 4px;
+    }
+    
+    .page-container {
+        padding: 20px;
+    }
+    
+    .data-table th, .data-table td {
+        padding: 8px;
+    }
+}
