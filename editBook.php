@@ -1,95 +1,73 @@
 <?php
 require_once "library.php";
+$bookObj = new Library();
 
-session_start();
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-$library = new Library();
-
-$book_data = [];
-$error_messages = [];
-$update_success = "";
+$book = [];
+$errors = [];
+$submit_success = "";
 
 if($_SERVER["REQUEST_METHOD"] == "GET"){
     if(isset($_GET["id"])) {
-        $book_id = trim(htmlspecialchars($_GET["id"]));
-        $book_data = $library->getBook($book_id);
-        if(!$book_data) {
-            echo "<a href='viewBook.php'>Back to Book List</a>";
-            exit("The requested book was not found");
+        $bid = trim(htmlspecialchars($_GET["id"]));
+        $book = $bookObj->fetchBook($bid);
+        if(!$book) {
+            echo "<a href='viewBook.php'>View Books</a>";
+            exit("Book not found");
         }
     } else {
-        echo "<a href='viewBook.php'>Back to Book List</a>";
-        exit("No book ID provided");
+        echo "<a href='viewBook.php'>View Books</a>";
+        exit("Book not found");
     }
 }
 elseif($_SERVER["REQUEST_METHOD"] == "POST") {
+    $book["title"] = trim(htmlspecialchars($_POST["title"]));
+    $book["author"] = trim(htmlspecialchars($_POST["author"]));
+    $book["genre"] = trim(htmlspecialchars($_POST["genre"]));
+    $book["publication_year"] = trim(htmlspecialchars($_POST["publication_year"]));
+    $book["publisher"] = trim(htmlspecialchars($_POST["publisher"]));
+    $book["copies"] = trim(htmlspecialchars($_POST["copies"]));
 
-    if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
-        die("Security validation failed");
+    if(empty($book["title"])) {
+        $errors["title"] = "Title is required";
+    } elseif($bookObj->isTitleExists($book["title"], $_GET["id"])) {
+        $errors["title"] = "This title already exists";
     }
 
-    $book_data["title"] = trim(htmlspecialchars($_POST["title"]));
-    $book_data["author"] = trim(htmlspecialchars($_POST["author"]));
-    $book_data["genre"] = trim(htmlspecialchars($_POST["genre"]));
-    $book_data["publication_year"] = trim(htmlspecialchars($_POST["publication_year"]));
-    $book_data["publisher"] = trim(htmlspecialchars($_POST["publisher"]));
-    $book_data["copies"] = trim(htmlspecialchars($_POST["copies"]));
-    $book_data["status"] = trim(htmlspecialchars($_POST["status"]));
-
-    $allowed_genres = ['History', 'Science', 'Fiction'];
-    if(empty($book_data["title"])) {
-        $error_messages["title"] = "Book title is required";
-    } elseif($library->checkTitleExists($book_data["title"], $_GET["id"])) {
-        $error_messages["title"] = "This book title is already in the system";
+    if(empty($book["author"])) {
+        $errors["author"] = "Author is required";
     }
 
-    if(empty($book_data["author"])) {
-        $error_messages["author"] = "Author name is required";
+    if(empty($book["genre"])) {
+        $errors["genre"] = "Genre is required";
     }
 
-    if(empty($book_data["genre"])) {
-        $error_messages["genre"] = "Please select a genre";
-    } elseif (!in_array($book_data["genre"], $allowed_genres)) {
-        $error_messages["genre"] = "Please select a valid genre";
+    if(empty($book["publication_year"])) {
+        $errors["publication_year"] = "Publication year is required";
+    } elseif(!is_numeric($book["publication_year"])) {
+        $errors["publication_year"] = "Publication year must be a number";
+    } elseif($book["publication_year"] > date("Y")) {
+        $errors["publication_year"] = "Publication year must not be in the future";
     }
 
-    if(empty($book_data["publication_year"])) {
-        $error_messages["publication_year"] = "Publication year is required";
-    } elseif(!is_numeric($book_data["publication_year"])) {
-        $error_messages["publication_year"] = "Year must be a valid number";
-    } elseif($book_data["publication_year"] > date("Y")) {
-        $error_messages["publication_year"] = "Publication year cannot be in the future";
+    if(empty($book["copies"])) {
+        $errors["copies"] = "Copies is required";
+    } elseif(!is_numeric($book["copies"])) {
+        $errors["copies"] = "Copies must be a number";
     }
 
-    if(empty($book_data["copies"])) {
-        $error_messages["copies"] = "Number of copies is required";
-    } elseif(!is_numeric($book_data["copies"])) {
-        $error_messages["copies"] = "Copies must be a valid number";
-    }
-    $allowed_statuses = ['Available', 'Checked Out', 'Maintenance'];
-    if(empty($book_data["status"])) {
-        $error_messages["status"] = "Please select a status";
-    } elseif (!in_array($book_data["status"], $allowed_statuses)) {
-        $error_messages["status"] = "Please select a valid status";
-    }
+    if(empty(array_filter($errors))) {
+        $bookObj->title = $book["title"];
+        $bookObj->author = $book["author"];
+        $bookObj->genre = $book["genre"];
+        $bookObj->publication_year = $book["publication_year"];
+        $bookObj->publisher = $book["publisher"];
+        $bookObj->copies = $book["copies"];
 
-    if(empty(array_filter($error_messages))) {
-        $library->title = $book_data["title"];
-        $library->author = $book_data["author"];
-        $library->genre = $book_data["genre"];
-        $library->publication_year = $book_data["publication_year"];
-        $library->publisher = $book_data["publisher"];
-        $library->copies = $book_data["copies"];
-        $library->status = $book_data["status"];
-
-        if($library->updateBook($_GET["id"])){
+        if($bookObj->editBook($_GET["id"])){
             header("Location: viewBook.php");
             exit();
         } else {
-            echo "An error occurred while updating";
+            echo "error";
         }
     }
 }
@@ -101,59 +79,47 @@ elseif($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Edit Book Information</title>
+    <title>Edit Book</title>
     <link rel="stylesheet" href="addbook.css" />
 </head>
 <body>
-    <div class="form-container">
-        <h1>Edit Book Details</h1>
-        <form method="post" action="">
-            
-            <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?>">
-            
-            <label for="title" class="form-label">Book Title <span class="mandatory">*</span></label>
-            <input type="text" name="title" id="title" class="form-input" value="<?= htmlspecialchars($book_data["title"] ?? "") ?>" />
-            <span class="validation-error"><?= $error_messages["title"] ?? "" ?></span>
+    <div class="container">
+        <h1>Edit Book Form</h1>
+        <form action="" method="post">
+            <label for="title">Title <span class="required">*</span></label>
+            <input type="text" name="title" id="title" value="<?= htmlspecialchars($book["title"] ?? "") ?>" />
+            <p class="error"><?= $errors["title"] ?? "" ?></p>
 
-            <label for="author" class="form-label">Author <span class="mandatory">*</span></label>
-            <input type="text" name="author" id="author" class="form-input" value="<?= htmlspecialchars($book_data["author"] ?? "") ?>" />
-            <span class="validation-error"><?= $error_messages["author"] ?? "" ?></span>
+            <label for="author">Author <span class="required">*</span></label>
+            <input type="text" name="author" id="author" value="<?= htmlspecialchars($book["author"] ?? "") ?>" />
+            <p class="error"><?= $errors["author"] ?? "" ?></p>
 
-            <label for="genre" class="form-label">Genre <span class="mandatory">*</span></label>
-            <select name="genre" id="genre" class="form-select">
-                <option value="">-- Choose Genre --</option>
-                <option value="History" <?= (isset($book_data["genre"]) && $book_data["genre"] == "History") ? "selected" : "" ?>>History</option>
-                <option value="Science" <?= (isset($book_data["genre"]) && $book_data["genre"] == "Science") ? "selected" : "" ?>>Science</option>
-                <option value="Fiction" <?= (isset($book_data["genre"]) && $book_data["genre"] == "Fiction") ? "selected" : "" ?>>Fiction</option>
+            <label for="genre">Genre <span class="required">*</span></label>
+            <select name="genre" id="genre">
+                <option value="">--Select Genre--</option>
+                <option value="History" <?= (isset($book["genre"]) && strcasecmp ($book["genre"], "History") == 0) ? "selected" : "" ?>>History</option>
+                <option value="Science" <?= (isset($book["genre"]) && strcasecmp($book["genre"], "Science")== 0) ? "selected" : "" ?>>Science</option>
+                <option value="Fiction" <?= (isset($book["genre"]) && strcasecmp ($book["genre"], "Fiction")== 0) ? "selected" : "" ?>>Fiction</option>
             </select>
-            <span class="validation-error"><?= $error_messages["genre"] ?? "" ?></span>
+            <p class="error"><?= $errors["genre"] ?? "" ?></p>
 
-            <label for="publication_year" class="form-label">Publication Year <span class="mandatory">*</span></label>
-            <input type="text" name="publication_year" id="publication_year" class="form-input" value="<?= htmlspecialchars($book_data["publication_year"] ?? "") ?>" />
-            <span class="validation-error"><?= $error_messages["publication_year"] ?? "" ?></span>
+            <label for="publication_year">Publication Year <span class="required">*</span></label>
+            <input type="text" name="publication_year" id="publication_year" value="<?= htmlspecialchars($book["publication_year"] ?? "") ?>" />
+            <p class="error"><?= $errors["publication_year"] ?? "" ?></p>
 
-            <label for="publisher" class="form-label">Publisher</label>
-            <input type="text" name="publisher" id="publisher" class="form-input" value="<?= htmlspecialchars($book_data["publisher"] ?? "") ?>" />
+            <label for="publisher">Publisher</label>
+            <input type="text" name="publisher" id="publisher" value="<?= htmlspecialchars($book["publisher"] ?? "") ?>" />
 
-            <label for="copies" class="form-label">Available Copies <span class="mandatory">*</span></label>
-            <input type="text" name="copies" id="copies" class="form-input" value="<?= htmlspecialchars($book_data["copies"] ?? "") ?>" />
-            <span class="validation-error"><?= $error_messages["copies"] ?? "" ?></span>
+            <label for="copies">Copies <span class="required">*</span></label>
+            <input type="text" name="copies" id="copies" value="<?= htmlspecialchars($book["copies"] ?? "") ?>" />
+            <p class="error"><?= $errors["copies"] ?? "" ?></p>
 
-            <label for="status" class="form-label">Book Status <span class="mandatory">*</span></label>
-            <select name="status" id="status" class="form-select">
-                <option value="">-- Select Status --</option>
-                <option value="Available" <?= (isset($book_data["status"]) && $book_data["status"] == "Available") ? "selected" : "" ?>>Available</option>
-                <option value="Checked Out" <?= (isset($book_data["status"]) && $book_data["status"] == "Checked Out") ? "selected" : "" ?>>Checked Out</option>
-                <option value="Maintenance" <?= (isset($book_data["status"]) && $book_data["status"] == "Maintenance") ? "selected" : "" ?>>Maintenance</option>
-            </select>
-            <span class="validation-error"><?= $error_messages["status"] ?? "" ?></span>
-
-            <input type="submit" value="Update Book Information" class="submit-button" />
-            <p class="success-message"><?= $update_success ?></p>
+            <input type="submit" value="Update Book" class="submit-btn" />
+            <p class="success"><?= $submit_success ?></p>
         </form>
 
-        <div class="action-button">
-            <a href="viewBook.php">Back to Book List</a>
+        <div class="nav-btn">
+            <a href="viewBook.php">View Book List</a>
         </div>
     </div>
 </body>
